@@ -23,11 +23,22 @@ import EqSet qualified
 data EqMap k v -- Complete me!
 
 empty :: EqMap k v
+empty = undefined
+
 member :: Eq k => k -> EqMap k v -> Bool
+member = undefined
+
 insert :: Eq k => k -> v -> EqMap k v -> EqMap k v
+insert = undefined
+
 remove :: Eq k => k -> EqMap k v -> EqMap k v
+remove = undefined
+
 lookup :: Eq k => k -> EqMap k v -> Maybe v
+lookup = undefined
+
 assocs :: EqMap k v -> [(k, v)]
+assocs = undefined
 
 instance (Eq k, Eq v) => Eq (EqMap k v)
 instance (Show k, Show v) => Show (EqMap k v)

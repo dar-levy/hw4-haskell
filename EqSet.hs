@@ -18,10 +18,19 @@ import Data.Maybe
 newtype EqSet a = EqSet {getSet :: [a]}
 
 empty :: EqSet a
+empty = undefined
+
 member :: Eq a => a -> EqSet a -> Bool
+member = undefined
+
 insert :: Eq a => a -> EqSet a -> EqSet a
+insert = undefined
+
 remove :: Eq a => a -> EqSet a -> EqSet a
+remove = undefined
+
 elems :: EqSet a -> [a]
+elems = undefined
 
 instance Eq a => Eq (EqSet a)
 instance Show a => Show (EqSet a)
