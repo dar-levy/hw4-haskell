@@ -40,10 +40,24 @@ lookup = undefined
 assocs :: EqMap k v -> [(k, v)]
 assocs = undefined
 
-instance (Eq k, Eq v) => Eq (EqMap k v)
-instance (Show k, Show v) => Show (EqMap k v)
-instance Eq k => Semigroup (EqMap k v)
-instance Eq k => Monoid (EqMap k v)
-newtype CombiningMap k v = CombiningMap {getCombiningMap :: EqMap k v}
-instance (Eq k, Semigroup v) => Semigroup (CombiningMap k v)
-instance (Eq k, Semigroup v) => Monoid (CombiningMap k v)
+instance (Eq k, Eq v) => Eq (EqMap k v) where
+  (==) = undefined
+
+instance (Show k, Show v) => Show (EqMap k v) where
+  show = undefined
+
+instance Eq k => Semigroup (EqMap k v) where
+  (<>) = undefined
+
+instance Eq k => Monoid (EqMap k v) where
+  mempty = undefined
+  mappend = (<>)
+
+newtype CombiningMap k v = CombiningMap { getCombiningMap :: EqMap k v }
+
+instance (Eq k, Semigroup v) => Semigroup (CombiningMap k v) where
+  (<>) = undefined
+
+instance (Eq k, Semigroup v) => Monoid (CombiningMap k v) where
+  mempty = undefined
+  mappend = (<>)

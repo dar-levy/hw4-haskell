@@ -15,7 +15,8 @@ import Data.Either
 import Data.List
 import Data.Maybe
 
-newtype EqSet a = EqSet {getSet :: [a]}
+--newtype EqSet a = EqSet {getSet :: [a]}
+newtype EqSet a = EqSet [a]
 
 empty :: EqSet a
 empty = undefined
@@ -32,7 +33,15 @@ remove = undefined
 elems :: EqSet a -> [a]
 elems = undefined
 
-instance Eq a => Eq (EqSet a)
-instance Show a => Show (EqSet a)
-instance Eq a => Semigroup (EqSet a)
-instance Eq a => Monoid (EqSet a)
+instance Eq a => Eq (EqSet a) where
+  (==) = undefined
+
+instance Show a => Show (EqSet a) where
+  show = undefined
+
+instance Eq a => Semigroup (EqSet a) where
+  (<>) = undefined
+
+instance Eq a => Monoid (EqSet a) where
+  mempty = undefined
+  mappend = (<>)
