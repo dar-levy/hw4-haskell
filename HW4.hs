@@ -40,7 +40,6 @@ infinity = 1 / 0
 
 class Eq a => Metric a where
   distance :: a -> a -> Double
-  distance = undefined
 
 instance Metric Double
 instance Metric Int
@@ -70,19 +69,14 @@ instance Metric a => Metric (ManhattanList a)
 -- Returns the element with the shortest distance to the input.
 -- If there are no numbers whose distance is less than infinity, return Nothing.
 closest :: Metric a => a -> [a] -> Maybe a
-closest = undefined
 -- Similar to the above, but uses a function move the element
 -- to another metric space.
 closestOn :: Metric b => (a -> b) -> a -> [a] -> Maybe a
-closestOn = undefined
 -- Will not swap elements whose distance is less than d, even if their
 -- order implies they should be swapped.
 metricBubbleSort :: (Metric a, Ord a) => Double -> [a] -> [a]
-metricBubbleSort = undefined
 -- Similar to the above, but uses a function to extract the value used for sorting.
 metricBubbleSortOn :: (Metric b, Ord b) => (a -> b) -> Double -> [a] -> [a]
-metricBubbleSortOn = undefined
 
 -- Bonus (10 points).
 clusters :: Metric a => [a] -> [[a]]
-clusters = undefined

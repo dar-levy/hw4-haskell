@@ -15,33 +15,55 @@ import Data.Either
 import Data.List
 import Data.Maybe
 
---newtype EqSet a = EqSet {getSet :: [a]}
-newtype EqSet a = EqSet [a]
+newtype EqSet a = EqSet {getSet :: [a]}
 
 empty :: EqSet a
-empty = undefined
+empty = EqSet []
 
 member :: Eq a => a -> EqSet a -> Bool
-member = undefined
+member _ (EqSet []) = False
+member y (EqSet (x:xs)) = if x == y then True else member y (EqSet xs)
 
 insert :: Eq a => a -> EqSet a -> EqSet a
-insert = undefined
+insert x (EqSet xs) = if member x (EqSet xs) then EqSet xs else EqSet (x:xs)
 
 remove :: Eq a => a -> EqSet a -> EqSet a
-remove = undefined
+remove _ (EqSet []) = EqSet []
+remove y (EqSet xs) = EqSet (removeAux y xs)
+  where
+    removeAux :: Eq a => a -> [a] -> [a]
+    removeAux _ [] = []
+    removeAux a (b:bs)
+      | a == b = bs
+      | otherwise = b : (removeAux a bs)
 
 elems :: EqSet a -> [a]
-elems = undefined
+elems = getSet
 
 instance Eq a => Eq (EqSet a) where
-  (==) = undefined
+  EqSet xs == EqSet ys = eqAux (EqSet xs) (EqSet ys)
+   where
+    eqAux :: Eq a => EqSet a -> EqSet a -> Bool
+    eqAux (EqSet []) _ = True
+    eqAux (EqSet (a:as)) (EqSet bs) = if member a (EqSet bs) then eqAux (EqSet as) (EqSet bs) else False
 
 instance Show a => Show (EqSet a) where
-  show = undefined
+  show :: Show a => EqSet a -> String
+  show (EqSet xs) = "{" ++ (showAux (EqSet xs)) ++ "}"
+   where
+    showAux :: Show a => EqSet a -> String
+    showAux (EqSet []) = ""
+    showAux (EqSet [a]) = show a
+    showAux (EqSet (a:as)) = show a ++ ", " ++ showAux (EqSet as)
 
 instance Eq a => Semigroup (EqSet a) where
-  (<>) = undefined
+  (<>) :: Eq a => EqSet a -> EqSet a -> EqSet a
+  (EqSet xs) <> (EqSet ys) = unionAux (EqSet xs) (EqSet ys)
+   where
+    unionAux :: Eq a => EqSet a -> EqSet a -> EqSet a
+    unionAux (EqSet []) (EqSet bs) = EqSet bs
+    unionAux (EqSet (a:as)) (EqSet bs) = unionAux (EqSet as) (EqSet.insert a (EqSet bs))
 
 instance Eq a => Monoid (EqSet a) where
-  mempty = undefined
-  mappend = (<>)
+  mempty :: Eq a => EqSet a
+  mempty = empty
