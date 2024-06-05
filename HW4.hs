@@ -104,72 +104,49 @@ instance (Serializable k, Eq k, Serializable v) => Serializable (EqMap k v) wher
 
   deserialize _ = error "Invalid input for EqMap deserialization"
 
--- Tests
-main :: IO ()
-main = do
-  -- Test cases for EqMap (Int, Bool)
-  let eqMapVal1 = EM.insert 1 True (EM.insert 2 False (EM.insert 3 True EM.empty)) :: EqMap Int Bool
-  let eqMapVal2 = EM.empty :: EqMap Int Bool
-  let serializedEqMapVal1 = serialize eqMapVal1
-  let serializedEqMapVal2 = serialize eqMapVal2
-  let deserializedEqMapVal1 = deserialize serializedEqMapVal1 :: EqMap Int Bool
-  let deserializedEqMapVal2 = deserialize serializedEqMapVal2 :: EqMap Int Bool
-  print $ deserializedEqMapVal1 == eqMapVal1 -- Should be True
-  print $ deserializedEqMapVal2 == eqMapVal2 -- Should be True
+-- Section 3: Metric
+infinity :: Double
+infinity = 1 / 0
 
-  -- Test cases for EqMap (Char, Int)
-  let eqMapCharVal1 = EM.insert 'a' 1 (EM.insert 'b' 2 (EM.insert 'c' 3 EM.empty)) :: EqMap Char Int
-  let eqMapCharVal2 = EM.empty :: EqMap Char Int
-  let serializedEqMapCharVal1 = serialize eqMapCharVal1
-  let serializedEqMapCharVal2 = serialize eqMapCharVal2
-  let deserializedEqMapCharVal1 = deserialize serializedEqMapCharVal1 :: EqMap Char Int
-  let deserializedEqMapCharVal2 = deserialize serializedEqMapCharVal2 :: EqMap Char Int
-  print $ deserializedEqMapCharVal1 == eqMapCharVal1 -- Should be True
-  print $ deserializedEqMapCharVal2 == eqMapCharVal2 -- Should be True
+class Eq a => Metric a where
+  distance :: a -> a -> Double
 
----- Section 3: Metric
---infinity :: Double
---infinity = 1 / 0
---
---class Eq a => Metric a where
---  distance :: a -> a -> Double
---
---instance Metric Double
---instance Metric Int
---instance Metric Char
---
----- Euclidean distance
---instance (Metric a, Metric b) => Metric (a, b)
---
---data ManhattanTuple a b = ManhattanTuple a b deriving Eq
---instance (Metric a, Metric b) => Metric (ManhattanTuple a b)
---
----- Just and Nothing have distance of infinity.
----- Two Justs measure the distance between the two values.
---instance Metric a => Metric (Maybe a)
---
----- Left and Right have a distance of infinity.
----- Same constructores measure the distance between the two values.
---instance (Metric a, Metric b) => Metric (Either a b)
---
----- Lists of different sizes have distance of infinity.
----- Euclidean distance.
---instance Metric a => Metric [a]
---
---newtype ManhattanList a = ManhattanList [a] deriving Eq
---instance Metric a => Metric (ManhattanList a)
---
----- Returns the element with the shortest distance to the input.
----- If there are no numbers whose distance is less than infinity, return Nothing.
---closest :: Metric a => a -> [a] -> Maybe a
----- Similar to the above, but uses a function move the element
----- to another metric space.
---closestOn :: Metric b => (a -> b) -> a -> [a] -> Maybe a
----- Will not swap elements whose distance is less than d, even if their
----- order implies they should be swapped.
---metricBubbleSort :: (Metric a, Ord a) => Double -> [a] -> [a]
----- Similar to the above, but uses a function to extract the value used for sorting.
---metricBubbleSortOn :: (Metric b, Ord b) => (a -> b) -> Double -> [a] -> [a]
---
----- Bonus (10 points).
---clusters :: Metric a => [a] -> [[a]]
+instance Metric Double
+instance Metric Int
+instance Metric Char
+
+-- Euclidean distance
+instance (Metric a, Metric b) => Metric (a, b)
+
+data ManhattanTuple a b = ManhattanTuple a b deriving Eq
+instance (Metric a, Metric b) => Metric (ManhattanTuple a b)
+
+-- Just and Nothing have distance of infinity.
+-- Two Justs measure the distance between the two values.
+instance Metric a => Metric (Maybe a)
+
+-- Left and Right have a distance of infinity.
+-- Same constructores measure the distance between the two values.
+instance (Metric a, Metric b) => Metric (Either a b)
+
+-- Lists of different sizes have distance of infinity.
+-- Euclidean distance.
+instance Metric a => Metric [a]
+
+newtype ManhattanList a = ManhattanList [a] deriving Eq
+instance Metric a => Metric (ManhattanList a)
+
+-- Returns the element with the shortest distance to the input.
+-- If there are no numbers whose distance is less than infinity, return Nothing.
+closest :: Metric a => a -> [a] -> Maybe a
+-- Similar to the above, but uses a function move the element
+-- to another metric space.
+closestOn :: Metric b => (a -> b) -> a -> [a] -> Maybe a
+-- Will not swap elements whose distance is less than d, even if their
+-- order implies they should be swapped.
+metricBubbleSort :: (Metric a, Ord a) => Double -> [a] -> [a]
+-- Similar to the above, but uses a function to extract the value used for sorting.
+metricBubbleSortOn :: (Metric b, Ord b) => (a -> b) -> Double -> [a] -> [a]
+
+-- Bonus (10 points).
+clusters :: Metric a => [a] -> [[a]]
