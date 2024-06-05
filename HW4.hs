@@ -15,24 +15,94 @@ import Data.List
 import Data.Maybe
 import Data.Semigroup (Arg (..))
 import EqMap (EqMap)
-import EqMap qualified
+import EqMap qualified as EM
 import EqSet (EqSet)
-import EqSet qualified
+import EqSet qualified as ES
 
--- Section 2: Serialization
 class Serializable a where
   serialize :: a -> [Int]
   deserialize :: [Int] -> a
 
-instance Serializable Int
-instance Serializable Bool
-instance Serializable Char
-instance Serializable a => Serializable (Maybe a)
-instance (Serializable a, Serializable b) => Serializable (a, b)
-instance (Serializable a, Serializable b) => Serializable (Either a b)
-instance Serializable a => Serializable [a]
-instance (Serializable a, Eq a) => Serializable (EqSet a)
-instance (Serializable k, Eq k, Serializable v) => Serializable (EqMap k v)
+instance Serializable Int where
+  serialize x = [x]
+  deserialize [x] = x
+  deserialize _ = error "Invalid input for Int deserialization"
+
+instance Serializable Bool where
+  serialize True = [1]
+  serialize False = [0]
+  deserialize [1] = True
+  deserialize [0] = False
+  deserialize _ = error "Invalid input for Bool deserialization"
+
+instance Serializable Char where
+  serialize x = [ord x]
+  deserialize [x] = chr x
+  deserialize _ = error "Invalid input for Char deserialization"
+
+instance Serializable a => Serializable (Maybe a) where
+  serialize Nothing = [-1]
+  serialize (Just x) = 0 : serialize x
+  deserialize (-1:_) = Nothing
+  deserialize (0:xs) = Just (deserialize xs)
+  deserialize _ = error "Invalid input for Maybe deserialization"
+
+instance (Serializable a, Serializable b) => Serializable (a, b) where
+  serialize (x, y) = serialize x ++ serialize y
+  deserialize xs =
+    let (xRest, xs') = splitAt 1 xs -- Take the serialized length of 1 element
+        (yRest, _) = splitAt 1 xs' -- Take the serialized length of 1 element
+    in (deserialize xRest, deserialize yRest)
+
+instance (Serializable a, Serializable b) => Serializable (Either a b) where
+  serialize (Left x) = 0 : serialize x
+  serialize (Right y) = 1 : serialize y
+  deserialize (0:xs) = Left (deserialize xs)
+  deserialize (1:xs) = Right (deserialize xs)
+  deserialize _ = error "Invalid input for Either deserialization"
+
+instance Serializable a => Serializable [a] where
+  serialize xs = 1 : concatMap (\x -> serialize x ++ [-1]) xs
+
+  deserialize (1:xs) = deserializeList xs
+    where
+      deserializeList [] = []
+      deserializeList ys =
+        let (element, rest) = break (== -1) ys
+        in deserialize element : deserializeList (drop 1 rest)
+  deserialize _ = error "Invalid input for list deserialization"
+
+instance (Serializable a, Eq a) => Serializable (EqSet a) where
+  serialize set = 1 : concatMap (\x -> serialize x ++ [-1]) (ES.elems set)
+
+  deserialize (1:xs) = deserializeSet xs
+    where
+      deserializeSet [] = ES.empty
+      deserializeSet ys =
+        let (element, rest) = break (== -1) ys
+        in ES.insert (deserialize element) (deserializeSet (drop 1 rest))
+  deserialize _ = error "Invalid input for EqSet deserialization"
+
+instance (Serializable k, Eq k, Serializable v) => Serializable (EqMap k v) where
+  serialize m = 1 : concatMap (\(k, v) -> serialize k ++ serialize v ++ [-1]) (EM.assocs m)
+
+  deserialize (1:xs) = deserializeMap xs
+    where
+      deserializeMap [] = EM.empty
+      deserializeMap ys =
+        let (pair, rest) = break (== -1) ys
+            (k, vRest) = deserializeElement pair
+            v = deserialize vRest
+        in EM.insert k v (deserializeMap (drop 1 rest))
+
+      deserializeElement :: [Int] -> (k, [Int])
+      deserializeElement zs =
+        let (kPrefix, kRest) = splitAt (length (serialize (undefined :: k))) zs
+            k = deserialize kPrefix
+            vRest = kRest
+        in (k, vRest)
+
+  deserialize _ = error "Invalid input for EqMap deserialization"
 
 -- Section 3: Metric
 infinity :: Double
