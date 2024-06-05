@@ -111,42 +111,114 @@ infinity = 1 / 0
 class Eq a => Metric a where
   distance :: a -> a -> Double
 
-instance Metric Double
-instance Metric Int
-instance Metric Char
+instance Metric Double where
+  distance x y = abs (x - y)
+
+instance Metric Int where
+  distance x y = abs (fromIntegral x - fromIntegral y)
+  --distance x y = distance (fromIntegral x) (fromIntegral y)
+
+instance Metric Char where
+  distance c1 c2 = distance (ord c1) (ord c2)
 
 -- Euclidean distance
-instance (Metric a, Metric b) => Metric (a, b)
+instance (Metric a, Metric b) => Metric (a, b) where
+  --distance (x1, y1) (x2, y2) = ((distance x1 x2) ** 2 + (distance y1 y2) ** 2) ** 0.5
+  distance (x1, y1) (x2, y2) = sqrt ((distance x1 x2) ** 2 + (distance y1 y2) ** 2)
 
 data ManhattanTuple a b = ManhattanTuple a b deriving Eq
-instance (Metric a, Metric b) => Metric (ManhattanTuple a b)
+instance (Metric a, Metric b) => Metric (ManhattanTuple a b) where
+  distance (ManhattanTuple a1 b1) (ManhattanTuple a2 b2) = (distance a1 a2) + (distance b1 b2)
 
 -- Just and Nothing have distance of infinity.
 -- Two Justs measure the distance between the two values.
-instance Metric a => Metric (Maybe a)
+instance Metric a => Metric (Maybe a) where
+
+  distance (Just x) (Just y) = distance x y
+  distance Nothing (Just _) = infinity
+  distance (Just _) Nothing = infinity
+  distance Nothing Nothing = 0
 
 -- Left and Right have a distance of infinity.
 -- Same constructores measure the distance between the two values.
-instance (Metric a, Metric b) => Metric (Either a b)
+instance (Metric a, Metric b) => Metric (Either a b) where
+  distance (Left x) (Left y) = distance x y
+  distance (Right x) (Right y) = distance x y
+  distance (Left _) (Right _) = infinity
+  distance (Right _) (Left _) = infinity
 
 -- Lists of different sizes have distance of infinity.
 -- Euclidean distance.
-instance Metric a => Metric [a]
+instance Metric a => Metric [a] where
+  distance as bs = (distanceAux as bs) ** 0.5
+   where
+   distanceAux :: Metric a => [a] -> [a] -> Double
+   distanceAux [x] [y] = (distance x y) ** 2
+   distanceAux (x:xs) (y:ys) = ((distance x y) ** 2) + (distanceAux xs ys)
+   distanceAux [] _ = infinity
+   distanceAux _ [] = infinity
 
 newtype ManhattanList a = ManhattanList [a] deriving Eq
-instance Metric a => Metric (ManhattanList a)
+instance Metric a => Metric (ManhattanList a) where
+  
+  distance (ManhattanList [a]) (ManhattanList [b]) = distance a b
+  distance (ManhattanList (a:as)) (ManhattanList (b:bs)) = (distance a b) + (distance (ManhattanList as) (ManhattanList bs))
+  distance (ManhattanList _) (ManhattanList []) = infinity
+  distance (ManhattanList []) (ManhattanList _) = infinity
 
 -- Returns the element with the shortest distance to the input.
 -- If there are no numbers whose distance is less than infinity, return Nothing.
 closest :: Metric a => a -> [a] -> Maybe a
+closest = closestOn id
+      
 -- Similar to the above, but uses a function move the element
 -- to another metric space.
 closestOn :: Metric b => (a -> b) -> a -> [a] -> Maybe a
+closestOn f' a as = closestOnAux f' a as infinity Nothing
+  where
+    --d = closestAux a as infinity Nothing
+    closestOnAux :: Metric b => (a -> b) -> a -> [a] -> Double -> Maybe a -> Maybe a
+    closestOnAux _ _ [] _ min_elem = min_elem
+    closestOnAux f x (y:ys) min_dist min_elem = if dist < min_dist
+      then closestOnAux f x ys dist (Just y)
+      else closestOnAux f x ys min_dist min_elem
+      where
+      dist = distance (f x) (f y)
+
+
 -- Will not swap elements whose distance is less than d, even if their
 -- order implies they should be swapped.
 metricBubbleSort :: (Metric a, Ord a) => Double -> [a] -> [a]
+metricBubbleSort = metricBubbleSortOn id
+
 -- Similar to the above, but uses a function to extract the value used for sorting.
 metricBubbleSortOn :: (Metric b, Ord b) => (a -> b) -> Double -> [a] -> [a]
+metricBubbleSortOn f' d' as = metricBubbleSortOnAux f' d' 0 (Data.List.length as) as
+ where
+  metricBubbleSortOnAux :: (Metric b, Ord b) => (a -> b) -> Double -> Int -> Int -> [a] -> [a]
+  metricBubbleSortOnAux f d num_iter len xs = if num_iter < len
+    then metricBubbleSortOnAux f d  (num_iter+1) len (iteration f d xs)
+    else xs
+
+  iteration :: (Metric b, Ord b) => (a -> b) -> Double -> [a] -> [a] 
+  iteration _ _ [] = []
+  iteration _ _ [x] = [x]
+  iteration f d (x:y:xys) = if condition then y : (iteration f d (x:xys)) else x : (iteration f d (y:xys))
+   where
+    condition = (fx > fy) && ((distance fx fy) > d)
+    fx = f x
+    fy = f y
 
 -- Bonus (10 points).
 clusters :: Metric a => [a] -> [[a]]
+clusters [] = []
+clusters (a:as) = reachables' : (clusters unreachables')
+ where
+  split :: Metric a => a -> [a] -> ([a], [a]) -> ([a], [a])
+  split _ [] (reachables, unreachables) = (reachables, unreachables)
+  split t (x:xs) (reachables, unreachables) = if (distance x t) < infinity
+    then split t xs (x:reachables, unreachables)
+    else split t xs (reachables, x:unreachables)
+
+  (reachables', unreachables') = (split a (a:as) ([], []))
+
