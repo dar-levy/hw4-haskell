@@ -57,14 +57,13 @@ instance Serializable a => Serializable (Maybe a) where
   deserialize (0:xs) = Just (deserialize xs)
   deserialize _ = error "Invalid input for Maybe deserialization"
 
----- Instance for (a, b)
---instance (Serializable a, Serializable b) => Serializable (a, b) where
---  serialize (x, y) = serialize x ++ serialize y
---  deserialize xs =
---    let (xRest, xs') = splitAt (length (serialize (undefined :: a))) xs
---        (yRest, ys') = splitAt (length (serialize (undefined :: b))) xs'
---    in (deserialize xRest, deserialize yRest)
---
+instance (Serializable a, Serializable b) => Serializable (a, b) where
+  serialize (x, y) = serialize x ++ serialize y
+  deserialize xs =
+    let (xRest, xs') = splitAt 1 xs -- Take the serialized length of 1 element
+        (yRest, _) = splitAt 1 xs' -- Take the serialized length of 1 element
+    in (deserialize xRest, deserialize yRest)
+
 ---- Instance for Either a b
 --instance (Serializable a, Serializable b) => Serializable (Either a b) where
 --  serialize (Left x) = 0 : serialize x
