@@ -64,14 +64,13 @@ instance (Serializable a, Serializable b) => Serializable (a, b) where
         (yRest, _) = splitAt 1 xs' -- Take the serialized length of 1 element
     in (deserialize xRest, deserialize yRest)
 
----- Instance for Either a b
---instance (Serializable a, Serializable b) => Serializable (Either a b) where
---  serialize (Left x) = 0 : serialize x
---  serialize (Right y) = 1 : serialize y
---  deserialize (0:xs) = Left (deserialize xs)
---  deserialize (1:xs) = Right (deserialize xs)
---  deserialize _ = error "Invalid input for Either deserialization"
---
+instance (Serializable a, Serializable b) => Serializable (Either a b) where
+  serialize (Left x) = 0 : serialize x
+  serialize (Right y) = 1 : serialize y
+  deserialize (0:xs) = Left (deserialize xs)
+  deserialize (1:xs) = Right (deserialize xs)
+  deserialize _ = error "Invalid input for Either deserialization"
+
 ---- Instance for [a]
 --instance Serializable a => Serializable [a] where
 --  serialize [] = [-1]
@@ -80,8 +79,9 @@ instance (Serializable a, Serializable b) => Serializable (a, b) where
 --  deserialize (0:xs) = deserialize' xs
 --    where
 --      deserialize' [] = []
---      deserialize' ys = let (xRest, ys') = splitAt (length (serialize (undefined :: a))) ys
+--      deserialize' ys = let (xRest, ys') = splitAt 1 ys -- Take the serialized length of 1 element
 --                        in deserialize xRest : deserialize ys'
+--      deserialize' _ = error "Invalid input for list deserialization"
 --
 ---- Rename newtype wrappers to avoid ambiguity
 --newtype SerializableEqSet a = SerializableEqSet (ES.EqSet a) deriving (Show, Eq)
@@ -97,6 +97,7 @@ instance (Serializable a, Serializable b) => Serializable (a, b) where
 --  serialize (SerializableEqMap m) = serialize (EM.assocs m)
 --  deserialize xs = let deserializedList = deserialize xs :: [(k, v)]
 --                   in SerializableEqMap (foldr (uncurry EM.insert) EM.empty deserializedList)
+
 
 ---- Section 3: Metric
 --infinity :: Double
