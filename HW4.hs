@@ -15,7 +15,7 @@ import Data.List
 import Data.Maybe
 import Data.Semigroup (Arg (..))
 import EqMap (EqMap)
-import EqMap qualified
+import EqMap qualified as EM
 import EqSet (EqSet)
 import EqSet qualified as ES
 
@@ -72,7 +72,6 @@ instance Serializable a => Serializable [a] where
         in deserialize element : deserializeList (drop 1 rest)
   deserialize _ = error "Invalid input for list deserialization"
 
--- Instance for EqSet a
 instance (Serializable a, Eq a) => Serializable (EqSet a) where
   serialize set = 1 : concatMap (\x -> serialize x ++ [-1]) (ES.elems set)
 
@@ -84,13 +83,49 @@ instance (Serializable a, Eq a) => Serializable (EqSet a) where
         in ES.insert (deserialize element) (deserializeSet (drop 1 rest))
   deserialize _ = error "Invalid input for EqSet deserialization"
 
---newtype SerializableEqMap k v = SerializableEqMap (EM.EqMap k v) deriving (Show, Eq)
---
---instance (Serializable k, Ord k, Serializable v) => Serializable (SerializableEqMap k v) where
---  serialize (SerializableEqMap m) = serialize (EM.assocs m)
---  deserialize xs = let deserializedList = deserialize xs :: [(k, v)]
---                   in SerializableEqMap (foldr (uncurry EM.insert) EM.empty deserializedList)
+instance (Serializable k, Eq k, Serializable v) => Serializable (EqMap k v) where
+  serialize m = 1 : concatMap (\(k, v) -> serialize k ++ serialize v ++ [-1]) (EM.assocs m)
 
+  deserialize (1:xs) = deserializeMap xs
+    where
+      deserializeMap [] = EM.empty
+      deserializeMap ys =
+        let (pair, rest) = break (== -1) ys
+            (k, vRest) = deserializeElement pair
+            v = deserialize vRest
+        in EM.insert k v (deserializeMap (drop 1 rest))
+
+      deserializeElement :: [Int] -> (k, [Int])
+      deserializeElement zs =
+        let (kPrefix, kRest) = splitAt (length (serialize (undefined :: k))) zs
+            k = deserialize kPrefix
+            vRest = kRest
+        in (k, vRest)
+
+  deserialize _ = error "Invalid input for EqMap deserialization"
+
+-- Tests
+main :: IO ()
+main = do
+  -- Test cases for EqMap (Int, Bool)
+  let eqMapVal1 = EM.insert 1 True (EM.insert 2 False (EM.insert 3 True EM.empty)) :: EqMap Int Bool
+  let eqMapVal2 = EM.empty :: EqMap Int Bool
+  let serializedEqMapVal1 = serialize eqMapVal1
+  let serializedEqMapVal2 = serialize eqMapVal2
+  let deserializedEqMapVal1 = deserialize serializedEqMapVal1 :: EqMap Int Bool
+  let deserializedEqMapVal2 = deserialize serializedEqMapVal2 :: EqMap Int Bool
+  print $ deserializedEqMapVal1 == eqMapVal1 -- Should be True
+  print $ deserializedEqMapVal2 == eqMapVal2 -- Should be True
+
+  -- Test cases for EqMap (Char, Int)
+  let eqMapCharVal1 = EM.insert 'a' 1 (EM.insert 'b' 2 (EM.insert 'c' 3 EM.empty)) :: EqMap Char Int
+  let eqMapCharVal2 = EM.empty :: EqMap Char Int
+  let serializedEqMapCharVal1 = serialize eqMapCharVal1
+  let serializedEqMapCharVal2 = serialize eqMapCharVal2
+  let deserializedEqMapCharVal1 = deserialize serializedEqMapCharVal1 :: EqMap Char Int
+  let deserializedEqMapCharVal2 = deserialize serializedEqMapCharVal2 :: EqMap Char Int
+  print $ deserializedEqMapCharVal1 == eqMapCharVal1 -- Should be True
+  print $ deserializedEqMapCharVal2 == eqMapCharVal2 -- Should be True
 
 ---- Section 3: Metric
 --infinity :: Double
