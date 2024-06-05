@@ -71,7 +71,6 @@ instance (Serializable a, Serializable b) => Serializable (Either a b) where
   deserialize (1:xs) = Right (deserialize xs)
   deserialize _ = error "Invalid input for Either deserialization"
 
--- Instance for [a]
 instance Serializable a => Serializable [a] where
   serialize xs = 1 : concatMap (\x -> serialize x ++ [-1]) xs
 
