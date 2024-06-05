@@ -19,7 +19,7 @@ module HW4 where
 --import EqSet (EqSet)
 --import EqSet qualified
 
-import Data.Char (ord, chr)
+import Data.Char (chr, ord)
 import Data.Either
 import Data.List (unfoldr)
 import Data.Maybe (fromJust, isJust)
