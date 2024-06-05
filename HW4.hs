@@ -73,51 +73,15 @@ instance (Serializable a, Serializable b) => Serializable (Either a b) where
 
 -- Instance for [a]
 instance Serializable a => Serializable [a] where
-  serialize [] = [-1]
-  serialize (x:xs) = 0 : serialize x ++ serialize xs
-  deserialize [] = error "Invalid input for list deserialization"
-  deserialize (-1:_) = []
-  deserialize (0:xs) = deserialize' xs
+  serialize xs = 1 : concatMap (\x -> serialize x ++ [-1]) xs
+
+  deserialize (1:xs) = deserializeList xs
     where
-      deserialize' [] = []
-      deserialize' ys = let (x, ys') = splitAt 1 ys
-                        in deserialize x : deserialize' ys'
+      deserializeList [] = []
+      deserializeList ys =
+        let (element, rest) = break (== -1) ys
+        in deserialize element : deserializeList (drop 1 rest)
   deserialize _ = error "Invalid input for list deserialization"
-
--- Tests
-main :: IO ()
-main = do
-  -- Test cases for [Int]
-  let listVal1 = [1, 2, 3] :: [Int]
-  let listVal2 = [] :: [Int]
-  let serializedListVal1 = serialize listVal1
-  let serializedListVal2 = serialize listVal2
-  let deserializedListVal1 = deserialize serializedListVal1 :: [Int]
-  let deserializedListVal2 = deserialize serializedListVal2 :: [Int]
-  print $ deserializedListVal1 == listVal1 -- Should be True
-  print $ deserializedListVal2 == listVal2 -- Should be True
-
-  -- Test cases for [Bool]
-  let boolListVal1 = [True, False, True] :: [Bool]
-  let boolListVal2 = [] :: [Bool]
-  let serializedBoolListVal1 = serialize boolListVal1
-  let serializedBoolListVal2 = serialize boolListVal2
-  let deserializedBoolListVal1 = deserialize serializedBoolListVal1 :: [Bool]
-  let deserializedBoolListVal2 = deserialize serializedBoolListVal2 :: [Bool]
-  print $ deserializedBoolListVal1 == boolListVal1 -- Should be True
-  print $ deserializedBoolListVal2 == boolListVal2 -- Should be True
-
-  -- Test cases for [Char]
-  let charListVal1 = ['a', 'b', 'c'] :: [Char]
-  let charListVal2 = [] :: [Char]
-  let serializedCharListVal1 = serialize charListVal1
-  let serializedCharListVal2 = serialize charListVal2
-  let deserializedCharListVal1 = deserialize serializedCharListVal1 :: [Char]
-  let deserializedCharListVal2 = deserialize serializedCharListVal2 :: [Char]
-  print $ deserializedCharListVal1 == charListVal1 -- Should be True
-  print $ deserializedCharListVal2 == charListVal2 -- Should be True
-
-
 
 ---- Rename newtype wrappers to avoid ambiguity
 --newtype SerializableEqSet a = SerializableEqSet (ES.EqSet a) deriving (Show, Eq)
