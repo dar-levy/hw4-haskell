@@ -9,23 +9,13 @@
 
 module HW4 where
 
---import Data.Char (chr, ord)
---import Data.Either
---import Data.List
---import Data.Maybe
---import Data.Semigroup (Arg (..))
---import EqMap (EqMap)
---import EqMap qualified
---import EqSet (EqSet)
---import EqSet qualified
-
 import Data.Char (chr, ord)
 import Data.Either
-import Data.List (unfoldr)
-import Data.Maybe (fromJust, isJust)
+import Data.List
+import Data.Maybe
 import Data.Semigroup (Arg (..))
 import EqMap (EqMap)
-import EqMap qualified as EM
+import EqMap qualified
 import EqSet (EqSet)
 import EqSet qualified as ES
 
@@ -82,14 +72,18 @@ instance Serializable a => Serializable [a] where
         in deserialize element : deserializeList (drop 1 rest)
   deserialize _ = error "Invalid input for list deserialization"
 
----- Rename newtype wrappers to avoid ambiguity
---newtype SerializableEqSet a = SerializableEqSet (ES.EqSet a) deriving (Show, Eq)
---
---instance (Serializable a, Ord a) => Serializable (SerializableEqSet a) where
---  serialize (SerializableEqSet s) = serialize (ES.elems s)
---  deserialize xs = let deserializedList = deserialize xs :: [a]
---                   in SerializableEqSet (foldr ES.insert ES.empty deserializedList)
---
+-- Instance for EqSet a
+instance (Serializable a, Eq a) => Serializable (EqSet a) where
+  serialize set = 1 : concatMap (\x -> serialize x ++ [-1]) (ES.elems set)
+
+  deserialize (1:xs) = deserializeSet xs
+    where
+      deserializeSet [] = ES.empty
+      deserializeSet ys =
+        let (element, rest) = break (== -1) ys
+        in ES.insert (deserialize element) (deserializeSet (drop 1 rest))
+  deserialize _ = error "Invalid input for EqSet deserialization"
+
 --newtype SerializableEqMap k v = SerializableEqMap (EM.EqMap k v) deriving (Show, Eq)
 --
 --instance (Serializable k, Ord k, Serializable v) => Serializable (SerializableEqMap k v) where
