@@ -55,14 +55,15 @@ assocs (EqMap keys ((Arg k v):key_vals)) = (k, v) : assocs (EqMap keys key_vals)
 
 instance (Eq k, Eq v) => Eq (EqMap k v) where -- test
   (==) :: (Eq k, Eq v) => EqMap k v -> EqMap k v -> Bool
-  (EqMap kmap1 vmap1) == (EqMap kmap2 vmap2) = eqAux (EqMap kmap1 vmap1) (EqMap kmap2 vmap2)
+  (EqMap kmap1 vmap1) == (EqMap kmap2 vmap2) = (eqAux (EqMap kmap1 vmap1) (EqMap kmap2 vmap2)) && 
+   (eqAux (EqMap kmap2 vmap2) (EqMap kmap1 vmap1))
    where
     eqAux :: (Eq k, Eq v) => EqMap k v -> EqMap k v -> Bool
     eqAux (EqMap _ []) (EqMap _ []) = True
-    eqAux (EqMap _ ((Arg _ _):_)) (EqMap _ []) = False
-    eqAux (EqMap _ []) (EqMap _ ((Arg _ _):_)) = False
-    eqAux (EqMap keys1 ((Arg k1 _):key_vals1)) (EqMap keys2 ((Arg k2 _):key_vals2)) = k1 == k2 &&
-      eqAux (EqMap keys1 key_vals1) (EqMap keys2 key_vals2)
+    eqAux (EqMap _ []) (EqMap _ ((Arg _ _):_)) = True
+    eqAux (EqMap keys1 ((Arg k1 v1):key_vals1)) (EqMap keys2 key_vals2) = case EqMap.lookup k1 (EqMap keys2 key_vals2) of
+      Just v -> (v1 == v) && eqAux (EqMap keys1 key_vals1) (EqMap keys2 key_vals2)
+      Nothing -> False
 
 
 instance (Show k, Show v) => Show (EqMap k v) where
@@ -88,21 +89,17 @@ instance Eq k => Monoid (EqMap k v) where
   mempty = empty
   
 newtype CombiningMap k v = CombiningMap {getCombiningMap :: EqMap k v} -- test
+
 instance (Eq k, Semigroup v) => Semigroup (CombiningMap k v) where
   (<>) :: (Eq k, Semigroup v) => CombiningMap k v -> CombiningMap k v -> CombiningMap k v
-  -- (CombiningMap (EqMap k1 ((Arg key val):v1))) <> (CombiningMap (EqMap k2 v2))
-  --  | member key (EqMap k2 v2) = (val <> EqMap.lookup key (EqMap k2 v2))
-  --  | otherwise = undefined
-  --  where
+  CombiningMap m1 <> CombiningMap m2 = CombiningMap (unionAux m1 m2)
+   where
+    unionAux (EqMap keys1 key_vals1) (EqMap _ []) = EqMap keys1 key_vals1
+    unionAux (EqMap keys1 key_vals1) (EqMap keys2 ((Arg key val):key_vals2)) = case EqMap.lookup key (EqMap keys1 key_vals1) of
+      Just v -> unionAux (EqMap.insert key (v <> val) (EqMap keys1 key_vals1)) (EqMap keys2 key_vals2)
+      Nothing -> unionAux (EqMap.insert key val (EqMap keys1 key_vals1)) (EqMap keys2 key_vals2)
 
-    --unionAux :: (Eq k, Semigroup v) => CombiningMap k v -> CombiningMap k v -> CombiningMap k v
-    --unionAux (CombiningMap (EqMap k1 ((Arg key val):v1))) (CombiningMap (EqMap k2 v2)) = if member key (EqMap k2 v2)
-      --then unionAux (EqMap.insert key (val <> (lookup key (EqMap k2 v2))) (EqMap k2 v2))
-      --else 
-  -- (CombiningMap (EqMap k1 v1)) <> (CombiningMap (EqMap k2 v2)) = if member k1 (EqMap k2 v2)
-  --   then EqMap.insert k1 (v1 <> v2) (EqMap k2 v2)
-  (CombiningMap (EqMap _ _)) <> (CombiningMap (EqMap _ _)) = undefined
 
-instance (Eq k, Semigroup v) => Monoid (CombiningMap k v) where
+instance (Eq k, Semigroup v) => Monoid (CombiningMap k v) where -- test
   mempty :: (Eq k, Semigroup v) => CombiningMap k v
   mempty = CombiningMap empty
