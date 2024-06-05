@@ -9,6 +9,16 @@
 
 module HW4 where
 
+--import Data.Char (chr, ord)
+--import Data.Either
+--import Data.List
+--import Data.Maybe
+--import Data.Semigroup (Arg (..))
+--import EqMap (EqMap)
+--import EqMap qualified
+--import EqSet (EqSet)
+--import EqSet qualified
+
 import Data.Char (ord, chr)
 import Data.Either
 import Data.List (unfoldr)
@@ -40,14 +50,13 @@ instance Serializable Char where
   deserialize [x] = chr x
   deserialize _ = error "Invalid input for Char deserialization"
 
--- Instance for Maybe a
---instance Serializable a => Serializable (Maybe a) where
---  serialize Nothing = [-1]
---  serialize (Just x) = 0 : serialize x
---  deserialize (-1:_) = Nothing
---  deserialize (0:xs) = Just (deserialize xs)
---  deserialize _ = error "Invalid input for Maybe deserialization"
---
+instance Serializable a => Serializable (Maybe a) where
+  serialize Nothing = [-1]
+  serialize (Just x) = 0 : serialize x
+  deserialize (-1:_) = Nothing
+  deserialize (0:xs) = Just (deserialize xs)
+  deserialize _ = error "Invalid input for Maybe deserialization"
+
 ---- Instance for (a, b)
 --instance (Serializable a, Serializable b) => Serializable (a, b) where
 --  serialize (x, y) = serialize x ++ serialize y
